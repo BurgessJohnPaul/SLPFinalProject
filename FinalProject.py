@@ -58,10 +58,14 @@ word_to_ind = get_word_to_ind(top_words)
 
 class NaiveBayes:
     def __init__(self):
+        self.name = "Naive Bayes"
+
         self.pos_counts = [0] * NUM_WORDS
         self.neg_counts = [0] * NUM_WORDS
+        self.word_to_ind = {}
 
     def train(self, comment_truth, word_to_ind):
+        self.word_to_ind = word_to_ind
         num_examples = len(comment_truth)
 
         x_matrix = np.zeros((num_examples, NUM_WORDS))
@@ -69,8 +73,8 @@ class NaiveBayes:
 
         for ind, review in enumerate(comment_truth):
             for word in review[0]:
-                if word in word_to_ind:
-                    x_matrix[ind][word_to_ind[word]] = 1
+                if word in self.word_to_ind:
+                    x_matrix[ind][self.word_to_ind[word]] = 1
                 if review[1]:
                     y_matrix[ind] = 1
 
@@ -80,19 +84,19 @@ class NaiveBayes:
             truthfulness = review_truth[1]
 
             for word in comment:
-                if word in word_to_ind:
+                if word in self.word_to_ind:
                     if truthfulness:
-                        self.pos_counts[word_to_ind[word]] += 1
+                        self.pos_counts[self.word_to_ind[word]] += 1
                     else:
-                        self.neg_counts[word_to_ind[word]] += 1
+                        self.neg_counts[self.word_to_ind[word]] += 1
 
-    def predict(self, review, word_to_ind):
+    def predict(self, review):
         neg_prob = 0
         pos_prob = 0
         for word in review:
-            if word in word_to_ind:
-                pos_prob += np.log(self.pos_counts[word_to_ind[word]]/float(800))
-                neg_prob += np.log(self.neg_counts[word_to_ind[word]]/float(800))
+            if word in self.word_to_ind:
+                pos_prob += np.log(self.pos_counts[self.word_to_ind[word]]/float(800))
+                neg_prob += np.log(self.neg_counts[self.word_to_ind[word]]/float(800))
 
         return pos_prob > neg_prob
 
@@ -100,11 +104,12 @@ def evaluate(model):
     correct = 0
     predictions = [0, 0]
     for review_truth in comment_truth:
-        prediction = model.predict(review_truth[0], word_to_ind)
+        prediction = model.predict(review_truth[0])
         predictions[0 if prediction else 1] += 1
         if review_truth[1] == prediction:
             correct += 1
 
+    print ("--- {} ---".format(model.name))
     print ("Predictions: ", predictions)
     print ("Correct: ", correct)
     print ("Accuracy: ", correct / float(1600))
