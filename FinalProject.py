@@ -97,15 +97,17 @@ class NaiveBayes:
         self.pos_counts = [0] * NUM_WORDS
         self.neg_counts = [0] * NUM_WORDS
         self.word_to_ind = {}
+        self.train_reviews = []
 
     def train(self, train_reviews, word_to_ind):
         self.word_to_ind = word_to_ind
-        num_examples = len(train_reviews)
+        self.train_reviews = train_reviews
+        num_examples = len(self.train_reviews)
 
         x_matrix = np.zeros((num_examples, NUM_WORDS))
         y_matrix = np.zeros((num_examples, 1))
 
-        for ind, review in enumerate(train_reviews):
+        for ind, review in enumerate(self.train_reviews):
             for word in review[0]:
                 if word in self.word_to_ind:
                     x_matrix[ind][self.word_to_ind[word]] = 1
@@ -113,7 +115,7 @@ class NaiveBayes:
                     y_matrix[ind] = 1
 
 
-        for review_truth in train_reviews:
+        for review_truth in self.train_reviews:
             comment = review_truth[0]
             truthfulness = review_truth[1]
 
@@ -129,8 +131,15 @@ class NaiveBayes:
         pos_prob = 0
         for word in review:
             if word in self.word_to_ind:
-                pos_prob += np.log(self.pos_counts[self.word_to_ind[word]]/float(800))
-                neg_prob += np.log(self.neg_counts[self.word_to_ind[word]]/float(800))
+                num_reviews_split = 0.5 * len(train_reviews)
+
+                pos_prob_pre = self.pos_counts[self.word_to_ind[word]]/float(num_reviews_split)
+                neg_prob_pre = self.neg_counts[self.word_to_ind[word]]/float(num_reviews_split)
+
+                if (pos_prob_pre != 0): # avoid log 0 error
+                    pos_prob += np.log(pos_prob_pre)
+                if (neg_prob_pre != 0):
+                    neg_prob += np.log(neg_prob_pre)
 
         return pos_prob > neg_prob
 
