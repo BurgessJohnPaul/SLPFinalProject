@@ -2,6 +2,9 @@ import numpy as np
 import os
 import collections
 import random
+import sys
+import keras
+from keras.layers import Embedding, Dense, LSTM, TimeDistributed, Bidirectional, BatchNormalization
 
 # Directory where data is stored.
 DATA_DIR = "data"
@@ -143,6 +146,110 @@ class NaiveBayes:
 
         return pos_prob > neg_prob
 
+# Int val that represents an unknown word
+UNKNOWN_VAL = NUM_WORDS
+# Int val that represents padding
+PADDING_VAL = NUM_WORDS + 1
+
+class LSTM_Model:
+    def __init__(self):
+        self.name = "LSTM Model"
+
+        self.word_to_ind = {}
+        self.train_reviews = []
+
+    def train(self, train_reviews, word_to_ind, test_reviews):
+        self.word_to_ind = word_to_ind
+        self.train_reviews = train_reviews
+        num_examples = len(self.train_reviews)
+
+        #Computing 95th percentile sentence length
+        review_lens = []
+        for review_truth in train_reviews:
+            #print (len(review_truth[0]))
+            review_lens.append(len(review_truth[0]))
+        max_sent_len = int(np.percentile(review_lens, 95))
+        print (max_sent_len)
+
+        x_matrix = np.zeros((num_examples, max_sent_len))
+        y_matrix = np.zeros((num_examples, 1))
+
+        for example_ind, review_truth in enumerate(self.train_reviews):
+            review = review_truth[0]
+            truth = review_truth[1]
+
+            for word_index in range(max_sent_len):
+                if word_index < len(review):
+                    word = review[word_index]
+                    if word in self.word_to_ind:
+                        word_int = word_to_ind[word]
+                    else:
+                        word_int = UNKNOWN_VAL
+                else:
+                    word_int = PADDING_VAL
+                x_matrix[example_ind][word_index] = word_int
+
+            if truth:
+                y_matrix[example_ind] = 1
+        #print(x_matrix[0])
+        np.set_printoptions(threshold=sys.maxsize)
+        file1 = open("x_matrix.txt", "+w")
+        file1.write(str(x_matrix))
+        file1.close()
+        file2 = open("y_matrix.txt", "+w")
+        file2.write(str(y_matrix))
+        file2.close()
+
+        # KERAS TIME
+        EMBED_DIM = 128
+        LSTM_DIM = 128
+        NUM_EPOCHS = 10
+
+        #embedding = Embedding(NUM_WORDS + 2, EMBED_DIM,input_length=max_sent_len)  # Unknown and padding
+        #lstm = Bidirectional(LSTM(LSTM_DIM, return_sequences=False))
+        #batch_norm = BatchNormalization()
+        #dense = TimeDistributed(Dense(1, activation='sigmoid'))
+
+        model = keras.models.Sequential()
+        model.add(Embedding(NUM_WORDS + 2,EMBED_DIM,input_length=max_sent_len))
+        model.add(Bidirectional(LSTM(LSTM_DIM)))
+        model.add(BatchNormalization())
+        model.add(Dense(1, activation='sigmoid'))
+        model.summary()
+
+        model.compile(optimizer="adam", loss="binary_crossentropy", metrics=['accuracy'])
+        model.fit(x_matrix, y_matrix, epochs=NUM_EPOCHS, batch_size=128)
+        #scores = model.evaluate(test_matrix, test_results)
+        #score = model.evaluate(test_matrix, )
+
+        #Test Data Time
+        test_matrix = np.zeros((len(test_reviews), max_sent_len))
+        for example_ind, review_truth in enumerate(test_reviews):
+            review = review_truth[0]
+            truth = review_truth[1]
+
+            for word_index in range(max_sent_len):
+                if word_index < len(review):
+                    word = review[word_index]
+                    if word in self.word_to_ind:
+                        word_int = word_to_ind[word]
+                    else:
+                        word_int = UNKNOWN_VAL
+                else:
+                    word_int = PADDING_VAL
+                test_matrix[example_ind][word_index] = word_int
+        predicted_y = model.predict(test_matrix)
+        file = open("testingKeras.txt", "w+")
+        np.set_printoptions(threshold=np.inf)
+        file.write(str(predicted_y))
+        file.close()
+        correct_count = 0
+        for i in range(len(test_reviews)):
+            predicted_truth = predicted_y[i][0] > 0.5
+            if predicted_truth == test_reviews[i][1]:
+                correct_count += 1
+        print (correct_count / float (len(test_reviews)))
+
 def evaluate(model, test_reviews):
     correct = 0
     predictions = [0, 0]
@@ -162,6 +269,8 @@ NaiveBayesModel = NaiveBayes()
 NaiveBayesModel.train(train_reviews, word_to_ind)
 evaluate(NaiveBayesModel, test_reviews)
 
+LSTM_Model = LSTM_Model()
+LSTM_Model.train(train_reviews, word_to_ind, test_reviews)
 
 #big_oof = ["hello", "the", "hotel", "was", "very", "nice", "but", "smelly"]
 #print (predict_truth(big_oof, pos_counts, neg_counts, word_to_ind))
