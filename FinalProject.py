@@ -19,6 +19,14 @@ NUM_WORDS = 500
 TRAIN_SPLIT = .8
 TEST_SPLIT = .2
 
+BOTH = "Both"
+POSITIVE = "Positive"
+NEGATIVE = "Negative"
+
+# Determine which dataset to examine (positive, negative, or both)
+DATASET = BOTH
+print("Review setting:" + DATASET)
+
 def populate_vectors(train_reviews, test_reviews, word_list):
     """
     Given three empty vectors, populate based on TRAIN_SPLIT, TEST_SPLIT
@@ -28,46 +36,51 @@ def populate_vectors(train_reviews, test_reviews, word_list):
     """
     for subdir, dirs, files in os.walk(DATA_DIR):
         if len(files) > 10: # Identifying the class folders
-            print("Loaded ", subdir)
+            print("Loading ", subdir)
+            if (DATASET == POSITIVE and "positive" not in subdir):
+                print("Skipped!")
+            elif (DATASET == NEGATIVE and "negative" not in subdir):
+                print("Skipped!")
+            else:
+                rand_files = list(filter(lambda x: ".txt" in x, files))
 
-            rand_files = list(filter(lambda x: ".txt" in x, files))
-            random.shuffle(rand_files)
+                random.shuffle(rand_files)
 
-            left_index_train = int(round(TRAIN_SPLIT*len(rand_files)))
-            right_index_test = int(round(TEST_SPLIT*len(rand_files))) + left_index_train
+                left_index_train = int(round(TRAIN_SPLIT*len(rand_files)))
+                right_index_test = int(round(TEST_SPLIT*len(rand_files))) + left_index_train
 
-            i = 0
-            for file in rand_files:
+                i = 0
+                for file in rand_files:
 
-                path_file = os.path.join(subdir, file)
-                with open(path_file) as f:
-                    first_line = f.readline()
-                #print (first_line)
-                truthful = "truthful" in path_file
+                    path_file = os.path.join(subdir, file)
+                    with open(path_file) as f:
+                        first_line = f.readline()
+                    #print (first_line)
+                    truthful = "truthful" in path_file
 
-                first_line = first_line.replace(".", " ")
-                first_line = first_line.replace(",", " ")
-                first_line = first_line.replace("(", " ")
-                first_line = first_line.replace(")", " ")
-                first_line = first_line.replace("?", "")
-                first_line = first_line.replace("!", "")
-                first_line = first_line.replace(";", "")
+                    first_line = first_line.replace(".", " ")
+                    first_line = first_line.replace(",", " ")
+                    first_line = first_line.replace("(", " ")
+                    first_line = first_line.replace(")", " ")
+                    first_line = first_line.replace("?", "")
+                    first_line = first_line.replace("!", "")
+                    first_line = first_line.replace(";", "")
 
-                first_line = first_line.split()
+                    first_line = first_line.split()
 
-                review_truth = (first_line, truthful)
+                    review_truth = (first_line, truthful)
 
-                if (i < left_index_train):
-                    train_reviews.append(review_truth)
-                elif (i < right_index_test):
-                    test_reviews.append(review_truth)
-                else:
-                    break
+                    if (i < left_index_train):
+                        train_reviews.append(review_truth)
+                    elif (i < right_index_test):
+                        test_reviews.append(review_truth)
+                    else:
+                        break
 
-                for word in first_line:
-                    word_list.append(word.lower())
+                    for word in first_line:
+                        word_list.append(word.lower())
 
-                i += 1
+                    i += 1
 
 def get_top_words(word_list):
     top_words_filthy = collections.Counter(word_list).most_common(NUM_WORDS)
@@ -84,14 +97,6 @@ def get_word_to_ind(top_words):
     for ind, word in enumerate(top_words):
         word_to_ind[word] = ind
     return word_to_ind
-
-word_list = []
-train_reviews = []
-test_reviews = []
-num_examples = populate_vectors(train_reviews, test_reviews, word_list)
-top_words = get_top_words(word_list)
-# print(top_words)
-word_to_ind = get_word_to_ind(top_words)
 
 class NaiveBayes:
     def __init__(self):
@@ -285,10 +290,18 @@ def evaluate(model, test_reviews):
     print ("Correct: ", correct)
     print ("Accuracy: ", correct / float(len(test_reviews)))
 
+word_list = []
+train_reviews = []
+test_reviews = []
+num_examples = populate_vectors(train_reviews, test_reviews, word_list)
+top_words = get_top_words(word_list)
+# print(top_words)
+word_to_ind = get_word_to_ind(top_words)
+
 NaiveBayesModel = NaiveBayes()
 NaiveBayesModel.train(train_reviews, word_to_ind)
-NaiveBayesModel.get_word_weights(word_list)
+# NaiveBayesModel.get_word_weights(word_list)
 evaluate(NaiveBayesModel, test_reviews)
 
-LSTM_Model = LSTM_Model()
-LSTM_Model.train(train_reviews, word_to_ind, test_reviews)
+# LSTM_Model = LSTM_Model()
+# LSTM_Model.train(train_reviews, word_to_ind, test_reviews)
