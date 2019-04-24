@@ -11,7 +11,7 @@ import operator
 DATA_DIR = "data"
 
 # Number of most frequent words to consider.
-NUM_WORDS = 500
+NUM_WORDS = 1000
 
 # Prooporttion of dataset in train vs. test set.
 # Each class (pos-truthful, neg-deceptive, neg-truthful, neg-deceptive) will be split by this proportion.
