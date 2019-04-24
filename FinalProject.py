@@ -5,6 +5,7 @@ import random
 import sys
 import keras
 from keras.layers import Embedding, Dense, LSTM, TimeDistributed, Bidirectional, BatchNormalization
+import operator
 
 # Directory where data is stored.
 DATA_DIR = "data"
@@ -146,6 +147,25 @@ class NaiveBayes:
 
         return pos_prob > neg_prob
 
+    def get_word_weights(self, word_list):
+        ##Get dict of word to its frequency
+        word_freq = {}
+        for word in word_list:
+            word_freq[word] = word_freq.get(word, 0) + 1
+
+        num_reviews_split = 0.5 * len(train_reviews)
+        pos_minus_neg = []
+        neg_minus_pos = []
+
+        for word in word_to_ind:
+            pos_prob_pre = self.pos_counts[self.word_to_ind[word]] / float(num_reviews_split)
+            neg_prob_pre = self.neg_counts[self.word_to_ind[word]] / float(num_reviews_split)
+
+            pos_minus_neg.append((word, (pos_prob_pre - neg_prob_pre) / float(np.log(word_freq[word]))))
+
+        pos_minus_neg.sort(key=operator.itemgetter(1))
+        print(pos_minus_neg)
+
 # Int val that represents an unknown word
 UNKNOWN_VAL = NUM_WORDS
 # Int val that represents padding
@@ -267,22 +287,8 @@ def evaluate(model, test_reviews):
 
 NaiveBayesModel = NaiveBayes()
 NaiveBayesModel.train(train_reviews, word_to_ind)
+NaiveBayesModel.get_word_weights(word_list)
 evaluate(NaiveBayesModel, test_reviews)
 
 LSTM_Model = LSTM_Model()
 LSTM_Model.train(train_reviews, word_to_ind, test_reviews)
-
-#big_oof = ["hello", "the", "hotel", "was", "very", "nice", "but", "smelly"]
-#print (predict_truth(big_oof, pos_counts, neg_counts, word_to_ind))
-
-'''
-np.set_printoptions(threshold=np.inf)
-file = open("matrixTest.txt", "+w")
-file.write(str(x_matrix))
-file.write(str(y_matrix))
-file.close()
-
-for review in comment_truth:
-    print (review[0])
-    print (review[1])
-'''
