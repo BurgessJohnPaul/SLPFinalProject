@@ -11,3 +11,9 @@ data/negative/deceptive   Deceptive reviews from MTurk
 ```
 
 Files are named: `[truthtfulness]_[hotel_name]_[number].txt`, e.g. `t_hilton_1.txt`.
+
+Downloading GloVe embeddings:
+
+The GloVe file used for the project was too large for GitHub. You may download it from:
+https://nlp.stanford.edu/projects/glove/
+Download `glove.6B.zip` and add `glove.6B.100d.txt` to the project folder.

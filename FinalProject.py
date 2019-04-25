@@ -98,6 +98,17 @@ def get_word_to_ind(top_words):
         word_to_ind[word] = ind
     return word_to_ind
 
+def get_glove_embeddings(word_to_ind):
+    with open("glove.6B.100d.txt", encoding='utf-8') as f:
+        lines = f.readlines()
+    glove_embeddings = np.zeros((NUM_WORDS+2,100))
+    for line in lines:
+        words_and_embeddings = line.split()
+        if words_and_embeddings[0] in word_to_ind:
+            index = word_to_ind[words_and_embeddings[0]]
+            glove_embeddings[index] = words_and_embeddings[1:]
+    return glove_embeddings
+
 class NaiveBayes:
     def __init__(self):
         self.name = "Naive Bayes"
@@ -183,7 +194,7 @@ class LSTM_Model:
         self.word_to_ind = {}
         self.train_reviews = []
 
-    def train(self, train_reviews, word_to_ind, test_reviews):
+    def train(self, train_reviews, word_to_ind, test_reviews, glove_embeddings):
         self.word_to_ind = word_to_ind
         self.train_reviews = train_reviews
         num_examples = len(self.train_reviews)
@@ -236,7 +247,7 @@ class LSTM_Model:
         #dense = TimeDistributed(Dense(1, activation='sigmoid'))
 
         model = keras.models.Sequential()
-        model.add(Embedding(NUM_WORDS + 2,EMBED_DIM,input_length=max_sent_len))
+        model.add(Embedding(NUM_WORDS + 2,EMBED_DIM,input_length=max_sent_len)) #weights=glove_embeddings
         model.add(Bidirectional(LSTM(LSTM_DIM)))
         model.add(BatchNormalization())
         model.add(Dense(1, activation='sigmoid'))
@@ -297,6 +308,7 @@ num_examples = populate_vectors(train_reviews, test_reviews, word_list)
 top_words = get_top_words(word_list)
 # print(top_words)
 word_to_ind = get_word_to_ind(top_words)
+glove_embeddings = get_glove_embeddings(word_to_ind)
 
 NaiveBayesModel = NaiveBayes()
 NaiveBayesModel.train(train_reviews, word_to_ind)
@@ -304,4 +316,4 @@ NaiveBayesModel.train(train_reviews, word_to_ind)
 evaluate(NaiveBayesModel, test_reviews)
 
 # LSTM_Model = LSTM_Model()
-# LSTM_Model.train(train_reviews, word_to_ind, test_reviews)
+# LSTM_Model.train(train_reviews, word_to_ind, test_reviews, glove_embeddings)
